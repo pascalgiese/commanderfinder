@@ -1,5 +1,8 @@
 # Commanderfinder
 
+![image](https://github.com/pascalgiese/commanderfinder/assets/56825576/cbc10a11-a05c-41b8-80e1-5b78cae0f79c)
+
+
 ## Find Commanders by their name and/or color
 You can find commanders by their name and/or color by entering their name into the input field and clicking the Find button. You can check their colors too to get a more precise answer.
 
