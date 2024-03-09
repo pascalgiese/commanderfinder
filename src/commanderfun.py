@@ -117,6 +117,8 @@ while True:
         if cards.status_code == 404:
             sg.popup("Keine Karte gefunden, die den Suchparametern entspricht.")
 
+    time.sleep(0.1)
+
     if event == '-DECK-':
         deck = edhrec.get_commanders_average_deck(clearcmdname)
         decklist_list = deck['decklist']
@@ -124,3 +126,4 @@ while True:
         for i in decklist_list:
             decklist += i + '\n'
         pyperclip.copy(decklist)
+        time.sleep(0.1)
