@@ -27,6 +27,7 @@ while True:
         break
 
     cmdColors = []
+    cmdColorsChecks = []
     paramsPayload = []
 
     if values['Red']:
@@ -73,7 +74,7 @@ while True:
             resizeImage.save(save_name, "PNG")
             image.append(sg.Image(save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("Commander name", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
             window1 = sg.Window("Commander Finder", layout)
             window.close()
             window = window1
@@ -109,10 +110,24 @@ while True:
             resizeImage.save(save_name, "PNG")
             image.append(sg.Image(save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("Commander name", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
-            window1 = sg.Window("Commander Finder", layout)
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+            window1 = sg.Window("Commander Finder", layout, finalize=True)
             window.close()
             window = window1
+
+            if cmdColors:
+                for i in cmdColors:
+                    match i:
+                        case 'R':
+                            window["Red"].update(value=True)
+                        case 'U':
+                            window["Blue"].update(value=True)
+                        case 'G':
+                            window["Green"].update(value=True)
+                        case 'W':
+                            window["White"].update(value=True)
+                        case 'B':
+                            window["Black"].update(value=True)
 
         if cards.status_code == 404:
             sg.popup("Keine Karte gefunden, die den Suchparametern entspricht.")
