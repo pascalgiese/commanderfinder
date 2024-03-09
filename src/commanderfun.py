@@ -1,5 +1,6 @@
 import os
 import PySimpleGUI as sg
+import pyperclip
 import requests
 import urllib.request
 from pyedhrec import EDHRec
@@ -7,10 +8,10 @@ import time
 import json
 from PIL import Image
 
+
 url_find = 'https://api.scryfall.com/cards/search'
 url_random = 'https://api.scryfall.com/cards/random'
 edhrec = EDHRec()
-
 cmdname = []
 
 layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
@@ -56,6 +57,7 @@ while True:
             # load commander image
             image = []
             commander = json.loads(cards.text)
+            clearcmdname = str(commander['data'][0]['name'])
             cardImage = str(commander['data'][0]['image_uris']['png'])
             save_name = 'commanderimage.png'
             urllib.request.urlretrieve(cardImage, save_name)
@@ -71,7 +73,7 @@ while True:
             resizeImage.save(save_name, "PNG")
             image.append(sg.Image(save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("Commander name", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("Commander name", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
             window1 = sg.Window("Commander Finder", layout)
             window.close()
             window = window1
@@ -91,6 +93,7 @@ while True:
             # load commander image
             image = []
             commander = json.loads(cards.text)
+            clearcmdname = str(commander["name"])
             cardImage = str(commander['image_uris']['png'])
             save_name = 'commanderimage.png'
             urllib.request.urlretrieve(cardImage, save_name)
@@ -106,10 +109,18 @@ while True:
             resizeImage.save(save_name, "PNG")
             image.append(sg.Image(save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("Commander name", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("Commander name", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
             window1 = sg.Window("Commander Finder", layout)
             window.close()
             window = window1
 
         if cards.status_code == 404:
             sg.popup("Keine Karte gefunden, die den Suchparametern entspricht.")
+
+    if event == '-DECK-':
+        deck = edhrec.get_commanders_average_deck(clearcmdname)
+        decklist_list = deck['decklist']
+        decklist = ''
+        for i in decklist_list:
+            decklist += i + '\n'
+        pyperclip.copy(decklist)
