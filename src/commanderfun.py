@@ -47,9 +47,9 @@ while True:
     if event == '-FIND-':
 
         if cmdColors:
-            paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'","").replace("'", "").replace(" ", "") + ' ' + 'is:commander'}
+            paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'","").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
         elif not cmdColors:
-            paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander'}
+            paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
 
         cards = requests.get(url_find, params=paramsPayload)
 
@@ -59,7 +59,10 @@ while True:
             image = []
             commander = json.loads(cards.text)
             clearcmdname = str(commander['data'][0]['name'])
-            cardImage = str(commander['data'][0]['image_uris']['png'])
+            if clearcmdname.__contains__('//'):
+                cardImage = str(commander['data'][0]['card_faces'][0]['image_uris']['png'])
+            else:
+                cardImage = str(commander['data'][0]['image_uris']['png'])
             save_name = 'commanderimage.png'
             urllib.request.urlretrieve(cardImage, save_name)
 
@@ -70,7 +73,7 @@ while True:
             resize_width = 745 * ratio
             resize_height = 1040 * ratio
             resizeImage = Image.open(save_name)
-            resizeImage.thumbnail(( int(resize_width), int(resize_height)), Image.Resampling.LANCZOS)
+            resizeImage.thumbnail((int(resize_width), int(resize_height)), Image.Resampling.LANCZOS)
             resizeImage.save(save_name, "PNG")
             image.append(sg.Image(save_name))
 
@@ -86,7 +89,7 @@ while True:
 
     if event == '-RANDOMIZE-':
 
-        paramsPayload = {'q': 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",", "").replace("'", "").replace("'", "").replace(" ", "") + ' ' + 'is:commander'}
+        paramsPayload = {'q': 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",", "").replace("'", "").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
         cards = requests.get(url_random, params=paramsPayload)
 
         if cards.status_code == 200:
@@ -95,7 +98,10 @@ while True:
             image = []
             commander = json.loads(cards.text)
             clearcmdname = str(commander["name"])
-            cardImage = str(commander['image_uris']['png'])
+            if clearcmdname.__contains__('//'):
+                cardImage = str(commander['card_faces'][0]['image_uris']['png'])
+            else:
+                cardImage = str(commander['image_uris']['png'])
             save_name = 'commanderimage.png'
             urllib.request.urlretrieve(cardImage, save_name)
 
