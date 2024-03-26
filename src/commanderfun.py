@@ -14,7 +14,7 @@ url_random = 'https://api.scryfall.com/cards/random'
 edhrec = EDHRec()
 cmdname = []
 
-layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow banned/not released: ", key="legal")], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
 
 window = sg.Window("Commander Finder", layout)
 
@@ -48,8 +48,13 @@ while True:
 
         if cmdColors:
             paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'","").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
+            if values['legal']:
+                paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'", "").replace("'", "").replace(" ","") + ' ' + 'is:commander' + ' ' + 'game:paper'}
+
         elif not cmdColors:
             paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
+            if values['legal']:
+                paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander' + ' ' + 'game:paper'}
 
         cards = requests.get(url_find, params=paramsPayload)
 
@@ -77,13 +82,16 @@ while True:
             resizeImage.save(save_name, "PNG")
             image.append(sg.Image(save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
-            window1 = sg.Window("Commander Finder", layout)
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow banned/not released: ", key="legal")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+            window1 = sg.Window("Commander Finder", layout, finalize=True)
             window.close()
             window = window1
 
         if cards.status_code == 404:
             sg.popup("Keine Karte gefunden, die den Suchparametern entspricht.")
+
+    if values['legal']:
+        window['legal'].update(value=True)
 
     time.sleep(0.1)
 
@@ -116,7 +124,7 @@ while True:
             resizeImage.save(save_name, "PNG")
             image.append(sg.Image(save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow banned/not released: ", key="legal")], [image], [sg.Button('Find', key='-FIND-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
             window1 = sg.Window("Commander Finder", layout, finalize=True)
             window.close()
             window = window1
