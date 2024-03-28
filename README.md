@@ -11,3 +11,9 @@ You can choose what colors you'd like and click Randomize. It gives you a random
 
 ## Save a deck to your clipboard
 By clicking on the Get Deck button after looking up a commander you can get a recommended decklist right into your Windows clipboard.
+
+## FAQ
+
+# Why does it say Free Trial Period?
+This tool is written using the PySimpleGUI library which requires a Dev Key. You will be prompted to sign up on their page, which you can do completely free of charge at the time of writing this. 
+You'll find their website here: https://www.pysimplegui.com/pricing
