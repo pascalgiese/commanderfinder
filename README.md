@@ -14,6 +14,6 @@ By clicking on the Get Deck button after looking up a commander you can get a re
 
 ## FAQ
 
-# Why does it say Free Trial Period?
+### Why does it say Free Trial Period?
 This tool is written using the PySimpleGUI library which requires a Dev Key. You will be prompted to sign up on their page, which you can do completely free of charge at the time of writing this. 
 You'll find their website here: https://www.pysimplegui.com/pricing
