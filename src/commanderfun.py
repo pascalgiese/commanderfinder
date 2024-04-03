@@ -203,7 +203,8 @@ while True:
             deckprice += cardprice
             decklist += i + '\n'
         pyperclip.copy(decklist)
-        sg.popup('{} cards provided no price.'.format(nopricecount))
+        if nopricecount > 0:
+            sg.popup('{} cards provided no price.'.format(nopricecount), no_titlebar=True, icon='warning')
         time.sleep(0.1)
         image2 = []
         image2.append(sg.Image(save_name))
@@ -211,8 +212,7 @@ while True:
         layout = [[sg.Text("Find your commander: ")],
               [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"),
                sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"),
-               sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image2],
-              [sg.Text('Budget: {} EUR'.format(round(deckprice, 2)))],
+               sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image2, sg.Text('Budget: {} EUR'.format(round(deckprice, 2)))],
               [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button('Get Deck', key='-DECK-'),
                sg.Button("Exit", key='-EXIT-')]]
         print(layout)
