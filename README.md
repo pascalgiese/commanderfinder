@@ -1,13 +1,18 @@
 # Commanderfinder
 
-![image](https://github.com/pascalgiese/commanderfinder/assets/56825576/cbc10a11-a05c-41b8-80e1-5b78cae0f79c)
-
+![image](https://github.com/pascalgiese/commanderfinder/assets/56825576/d53209e2-d246-40c2-a8ec-bce2b31c5492)
 
 ## Find Commanders by their name and/or color
 You can find commanders by their name and/or color by entering their name into the input field and clicking the Find button. You can check their colors too to get a more precise answer.
 
 ## Find new Commanders with the Randomizer
 You can choose what colors you'd like and click Randomize. It gives you a random commander including these colors.
+
+## Choose your budget
+You can choose between Low, Average and High Budget for your decklist.
+
+## Check the prices
+You will get an estimated value of the cards whenever you copy a decklist.
 
 ## Save a deck to your clipboard
 By clicking on the Get Deck button after looking up a commander you can get a recommended decklist right into your Windows clipboard.
