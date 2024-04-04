@@ -4,6 +4,8 @@ import PySimpleGUI as sg
 import pyperclip
 import requests
 import urllib.request
+from urllib.request import urlopen
+from urllib.error import HTTPError
 from pyedhrec import EDHRec
 import time
 import json
@@ -18,6 +20,20 @@ cmdname = []
 layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
 
 window = sg.Window("Commander Finder", layout)
+
+url_bulk_info = 'https://api.scryfall.com/bulk-data'
+bulk_info_json = requests.get(url_bulk_info).json()
+confirm = sg.Window("Continue?", [[sg.Text("This program needs to download and temporarily store card data from Scryfall on your device.")], [sg.Yes(s=10), sg.No(s=10)]], disable_close=True)
+event, values = confirm.read()
+if event == 'Yes':
+    confirm.close()
+    sg.PopupAutoClose("Downloading card info from Scryfall. Please wait...", button_type=5, title="Downloading card info")
+    urllib.request.urlretrieve(bulk_info_json['data'][0]['download_uri'], 'bulk.json')
+    with open('bulk.json', encoding='utf-8') as bulk:
+        scryfall_bulk = json.load(bulk)
+if event == 'No':
+    confirm.close()
+    exit(0)
 
 while True:
     event, values = window.read()
@@ -88,7 +104,7 @@ while True:
             resizeImage.save(save_name, "PNG")
             image.append(sg.Image(save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Exit", key='-EXIT-')]]
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image, sg.Radio('Low Budget', key='LOW', group_id=1), sg.Radio('Average Budget', key='AVG', group_id=1, default=True), sg.Radio('High Budget', key='HIGH', group_id=1), sg.Button('Get Deck', key='-DECK-')], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
             print(layout)
             window1 = sg.Window("Commander Finder", layout, finalize=True)
             window.close()
@@ -144,7 +160,7 @@ while True:
             resizeImage.save(save_name, "PNG")
             image.append(sg.Image(save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button('Get Deck', key='-DECK-'), sg.Button("Exit", key='-EXIT-')]]
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image, sg.Radio('Low Budget', key='LOW', group_id=1), sg.Radio('Average Budget', key='AVG', group_id=1, default=True), sg.Radio('High Budget', key='HIGH', group_id=1), sg.Button('Get Deck', key='-DECK-')], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
             print(layout)
             window1 = sg.Window("Commander Finder", layout, finalize=True)
             window.close()
@@ -175,36 +191,69 @@ while True:
     time.sleep(0.1)
 
     if event == '-DECK-':
-        deck = edhrec.get_commanders_average_deck(clearcmdname)
-        decklist_list = deck['decklist']
-        decklist = ''
-        cardstr = ''
-        card = ''
-        deckprice = 0.0
-        cardprice = 0.0
-        nopricecount = 0
-        url_bulk_info = 'https://api.scryfall.com/bulk-data'
-        bulk_info_json = requests.get(url_bulk_info).json()
-        urllib.request.urlretrieve(bulk_info_json['data'][0]['download_uri'], 'bulk.json')
-        with open('bulk.json', encoding='utf-8') as bulk:
-            scryfall_bulk = json.load(bulk)
-        for i in decklist_list:
-            cardstr = str(i)
-            card = re.sub('[1-9]', '', cardstr).strip()
-            for singlecard in scryfall_bulk:
-                if singlecard['name'] == card:
-                    if not str(singlecard['prices']['eur']).__contains__('None'):
-                        cardprice = float(singlecard['prices']['eur'])
-                    else:
-                        if not str(singlecard['prices']['usd']).__contains__('None'):
-                            cardprice = float(singlecard['prices']['usd'])
+
+        try:
+            if values['LOW']:
+                url = 'https://edhrec.com/average-decks/{}/budget'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                page = urlopen(url)
+                if page.getcode() == 200:
+                    html_bytes = page.read()
+                    html = html_bytes.decode('utf-8')
+                    decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                    start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                    end_index = html.find('</code>')
+                    decklist = html[start_index:end_index].replace('&#x27;', '\'')
+
+            if values['AVG']:
+                url = 'https://edhrec.com/average-decks/{}'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                page = urlopen(url)
+                if page.getcode() == 200:
+                    html_bytes = page.read()
+                    html = html_bytes.decode('utf-8')
+                    decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                    start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                    end_index = html.find('</code>')
+                    decklist = html[start_index:end_index].replace('&#x27;', '\'')
+
+            if values['HIGH']:
+                url = 'https://edhrec.com/average-decks/{}/expensive'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                page = urlopen(url)
+                if page.getcode() == 200:
+                    html_bytes = page.read()
+                    html = html_bytes.decode('utf-8')
+                    decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                    start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                    end_index = html.find('</code>')
+                    decklist = html[start_index:end_index].replace('&#x27;', '\'')
+
+        except HTTPError as error:
+            if error.code == 404:
+                sg.Popup("Oopsie Daisy! EDHRec doesn't provide your desired decklist.")
+            else:
+                raise
+
+        if decklist:
+            deckprice = 0.0
+            cardprice = 0.0
+            nopricecount = 0
+            decklist_list = decklist.split("\n")
+            for i in decklist_list:
+                cardstr = str(i)
+                card = re.sub('[1-9]', '', cardstr).strip()
+                for singlecard in scryfall_bulk:
+                    if singlecard['name'] == card:
+                        if not str(singlecard['prices']['eur']).__contains__('None'):
+                            cardprice = float(singlecard['prices']['eur'])
                         else:
-                            nopricecount += 1
-            deckprice += cardprice
-            decklist += i + '\n'
-        pyperclip.copy(decklist)
-        if nopricecount > 0:
-            sg.popup('{} cards provided no price.'.format(nopricecount), no_titlebar=True, icon='warning')
+                            if not str(singlecard['prices']['usd']).__contains__('None'):
+                                cardprice = float(singlecard['prices']['usd'])
+                            else:
+                                nopricecount += 1
+                deckprice += cardprice
+            pyperclip.copy(decklist)
+            if nopricecount > 0:
+                sg.popup('{} cards provided no price.'.format(nopricecount), no_titlebar=True, icon='warning', background_color='white', text_color='black')
+
         time.sleep(0.1)
         image2 = []
         image2.append(sg.Image(save_name))
@@ -212,8 +261,8 @@ while True:
         layout = [[sg.Text("Find your commander: ")],
               [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"),
                sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"),
-               sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image2, sg.Text('Budget: {} EUR'.format(round(deckprice, 2)))],
-              [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button('Get Deck', key='-DECK-'),
+               sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image2, sg.Text('Budget: {} EUR'.format(round(deckprice, 2))), sg.Radio('Low Budget', key='LOW', group_id=1), sg.Radio('Average Budget', key='AVG', group_id=1, default=True), sg.Radio('High Budget', key='HIGH', group_id=1), sg.Button('Get Deck', key='-DECK-')],
+              [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'),
                sg.Button("Exit", key='-EXIT-')]]
         print(layout)
         window1 = sg.Window("Commander Finder", layout, finalize=True)
