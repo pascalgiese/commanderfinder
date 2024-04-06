@@ -27,5 +27,5 @@ This tool is written using the PySimpleGUI library which requires a Dev Key. You
 You'll find their website here: https://www.pysimplegui.com/pricing
 
 ### Why does Windows Defender say this is a virus?
-Apparently there is a problem with the .exe files generated with PyInstaller and Windows Defender. Windows Defender false claims the .exe file to be malicious. You can add the executable to your execptions list in your Settings.
+Apparently there is a problem with the .exe files generated with PyInstaller and Windows Defender. Windows Defender falsely claims the .exe file to be malicious. You can add the executable to your execptions list in your Settings.
 For everyone questioniong the safety of the file, I will try to keep the newest version's safety scan linked here: [VirusTotal](https://www.virustotal.com/gui/file/e06cdfac513f85d376a8c01c7384ae0ff11cb905186295b162e049780a537ad4/detection)
