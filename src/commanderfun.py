@@ -17,7 +17,7 @@ url_random = 'https://api.scryfall.com/cards/random'
 edhrec = EDHRec()
 cmdname = []
 
-layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned'), sg.Checkbox("Partner", key='partner')], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
 
 window = sg.Window("Commander Finder", layout)
 
@@ -40,6 +40,7 @@ while True:
     print(event, values)
     if event in (sg.WIN_CLOSED, '-EXIT-'):
         os.remove(save_name)
+        os.remove(partner_save_name)
         os.remove('bulk.json')
         break
 
@@ -66,26 +67,61 @@ while True:
         if not values['cmdName']:
             sg.popup("Please enter a name.")
 
-        if cmdColors:
-            paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'","").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
-            if values['new']:
-                paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'", "").replace("'", "").replace(" ","") + ' ' + 'is:commander' + ' ' + 'game:paper'}
+        if not values['partner']:
+            if cmdColors:
+                paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'","").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
+                if values['new']:
+                    paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'", "").replace("'", "").replace(" ","") + ' ' + 'is:commander' + ' ' + 'game:paper'}
 
-        elif not cmdColors:
-            paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
-            if values['new']:
-                paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander' + ' ' + 'game:paper'}
-            if values['banned']:
-                paramsPayload = {"q": cmdname[0] + ' ' + 'type:legendary' + ' ' + 'game:paper'}
+            elif not cmdColors:
+                paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
+                if values['new']:
+                    paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander' + ' ' + 'game:paper'}
+                if values['banned']:
+                    paramsPayload = {"q": cmdname[0] + ' ' + 'type:legendary' + ' ' + 'game:paper'}
+
+        if values['partner']:
+
+            if cmdColors:
+                paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'", "").replace("'", "").replace(" ","") + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper' + ' ' + 'o:partner'}
+                if values['new']:
+                    paramsPayload = {"q": cmdname[0] + ' ' + 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",","").replace("'", "").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'game:paper'+ ' ' + 'o:partner'}
+
+            elif not cmdColors:
+                paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper' + ' ' + 'o:partner'}
+                if values['new']:
+                    paramsPayload = {"q": cmdname[0] + ' ' + 'is:commander' + ' ' + 'game:paper' + ' ' + 'o:partner'}
+                if values['banned']:
+                    paramsPayload = {"q": cmdname[0] + ' ' + 'type:legendary' + ' ' + 'game:paper' + ' ' + 'o:partner'}
 
         cards = requests.get(url_find, params=paramsPayload)
 
         if cards.status_code == 200:
 
             # load commander image
-            image = []
+            images = []
             commander = json.loads(cards.text)
             clearcmdname = str(commander['data'][0]['name'])
+            if str(commander['data'][0]['oracle_text']).__contains__("Partner"):
+                partner_url = 'https://edhrec.com/partners/{}'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                page = urlopen(partner_url)
+                if page.getcode() == 200:
+                    html_bytes = page.read()
+                    html = html_bytes.decode('utf-8')
+                    partner_index = html.find('<script id="__NEXT_DATA__" type="application/json">')
+                    start_index = partner_index + len('<script id="__NEXT_DATA__" type="application/json">')
+                    end_index = html.find('</script></body>')
+                    partner_site = json.loads(html[start_index:end_index])
+                    partner_site_url = 'https://edhrec.com' + str(partner_site['props']['pageProps']['data']['container']['json_dict']['cardlists'][0]['cardviews'][0]['url'])
+                    partner_name = partner_site['props']['pageProps']['data']['container']['json_dict']['cardlists'][0]['cardviews'][0]['name']
+                    partner_response = requests.get(url_find, params={'q': partner_name})
+                    partner = json.loads(partner_response.text)
+                    if str(partner_name).__contains__('//'):
+                        partnerImage = str(partner['data'][0]['card_faces'][0]['image_uris']['png'])
+                    else:
+                        partnerImage = str(partner['data'][0]['image_uris']['png'])
+                    partner_save_name = 'partnerimage.png'
+                    urllib.request.urlretrieve(partnerImage, partner_save_name)
             if clearcmdname.__contains__('//'):
                 cardImage = str(commander['data'][0]['card_faces'][0]['image_uris']['png'])
             else:
@@ -100,11 +136,16 @@ while True:
             resize_width = 745 * ratio
             resize_height = 1040 * ratio
             resizeImage = Image.open(save_name)
+            if partner:
+                resizePartnerImage = Image.open(partner_save_name)
+                resizePartnerImage.thumbnail((int(resize_width), int(resize_height)), Image.Resampling.LANCZOS)
+                resizePartnerImage.save(partner_save_name, "PNG")
             resizeImage.thumbnail((int(resize_width), int(resize_height)), Image.Resampling.LANCZOS)
             resizeImage.save(save_name, "PNG")
-            image.append(sg.Image(save_name))
+            images.append(sg.Image(save_name))
+            images.append(sg.Image(partner_save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image, sg.Radio('Low Budget', key='LOW', group_id=1), sg.Radio('Average Budget', key='AVG', group_id=1, default=True), sg.Radio('High Budget', key='HIGH', group_id=1), sg.Button('Get Deck', key='-DECK-')], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned'), sg.Checkbox("Partner", key='partner')], [images, sg.Radio('Low Budget', key='LOW', group_id=1), sg.Radio('Average Budget', key='AVG', group_id=1, default=True), sg.Radio('High Budget', key='HIGH', group_id=1), sg.Button('Get Deck', key='-DECK-')], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
             print(layout)
             window1 = sg.Window("Commander Finder", layout, finalize=True)
             window.close()
@@ -117,31 +158,67 @@ while True:
         window['new'].update(value=True)
     if values['banned']:
         window['banned'].update(value=True)
+    if values['partner']:
+        window['partner'].update(value=True)
 
     time.sleep(0.1)
 
     if event == '-RANDOMIZE-':
 
-        if cmdColors:
-            paramsPayload = {"q": 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",", "").replace("'", "").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
-            if values['new']:
-                paramsPayload = {"q": 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",", "").replace("'", "").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'game:paper'}
+        if not values['partner']:
+            if cmdColors:
+                paramsPayload = {"q": 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",", "").replace("'", "").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
+                if values['new']:
+                    paramsPayload = {"q": 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",", "").replace("'", "").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'game:paper'}
 
-        elif not cmdColors:
-            paramsPayload = {"q": 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
-            if values['new']:
-                paramsPayload = {"q": 'is:commander' + ' ' + 'game:paper'}
-            if values['banned']:
-                paramsPayload = {"q": 't:legendary' + ' ' + '(t:creature OR t:planeswalker)' + ' ' + 'game:paper'}
+            elif not cmdColors:
+                paramsPayload = {"q": 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper'}
+                if values['new']:
+                    paramsPayload = {"q": 'is:commander' + ' ' + 'game:paper'}
+                if values['banned']:
+                    paramsPayload = {"q": 't:legendary' + ' ' + '(t:creature OR t:planeswalker)' + ' ' + 'game:paper'}
+
+        if values['partner']:
+            if cmdColors:
+                paramsPayload = {"q": 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",", "").replace("'","").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper' + ' ' + 'o:partner'}
+                if values['new']:
+                    paramsPayload = {"q": 'c:' + str(cmdColors).replace("[", "").replace("]", "").replace(",", "").replace("'","").replace("'", "").replace(" ", "") + ' ' + 'is:commander' + ' ' + 'game:paper' + ' ' + 'o:partner'}
+
+            elif not cmdColors:
+                paramsPayload = {"q": 'is:commander' + ' ' + 'legal:commander' + ' ' + 'game:paper' + ' ' + 'o:partner'}
+                if values['new']:
+                    paramsPayload = {"q": 'is:commander' + ' ' + 'game:paper' + ' ' + 'o:partner'}
+                if values['banned']:
+                    paramsPayload = {"q": 't:legendary' + ' ' + '(t:creature OR t:planeswalker)' + ' ' + 'game:paper' + ' ' + 'o:partner'}
 
         cards = requests.get(url_random, params=paramsPayload)
 
         if cards.status_code == 200:
 
             # load commander image
-            image = []
+            images = []
             commander = json.loads(cards.text)
             clearcmdname = str(commander["name"])
+            if str(commander['oracle_text']).__contains__("Partner"):
+                partner_url = 'https://edhrec.com/partners/{}'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                page = urlopen(partner_url)
+                if page.getcode() == 200:
+                    html_bytes = page.read()
+                    html = html_bytes.decode('utf-8')
+                    partner_index = html.find('<script id="__NEXT_DATA__" type="application/json">')
+                    start_index = partner_index + len('<script id="__NEXT_DATA__" type="application/json">')
+                    end_index = html.find('</script></body>')
+                    partner_site = json.loads(html[start_index:end_index])
+                    partner_site_url = 'https://edhrec.com' + str(partner_site['props']['pageProps']['data']['container']['json_dict']['cardlists'][0]['cardviews'][0]['url'])
+                    partner_name = partner_site['props']['pageProps']['data']['container']['json_dict']['cardlists'][0]['cardviews'][0]['name']
+                    partner_response = requests.get(url_find, params={'q': partner_name})
+                    partner = json.loads(partner_response.text)
+                    if str(partner_name).__contains__('//'):
+                        partnerImage = str(partner['data'][0]['card_faces'][0]['image_uris']['png'])
+                    else:
+                        partnerImage = str(partner['data'][0]['image_uris']['png'])
+                    partner_save_name = 'partnerimage.png'
+                    urllib.request.urlretrieve(partnerImage, partner_save_name)
             if clearcmdname.__contains__('//'):
                 cardImage = str(commander['card_faces'][0]['image_uris']['png'])
             else:
@@ -156,11 +233,16 @@ while True:
             resize_width = 745 * ratio
             resize_height = 1040 * ratio
             resizeImage = Image.open(save_name)
+            if partner:
+                resizePartnerImage = Image.open(partner_save_name)
+                resizePartnerImage.thumbnail((int(resize_width), int(resize_height)), Image.Resampling.LANCZOS)
+                resizePartnerImage.save(partner_save_name, "PNG")
             resizeImage.thumbnail((int(resize_width), int(resize_height)), Image.Resampling.LANCZOS)
             resizeImage.save(save_name, "PNG")
-            image.append(sg.Image(save_name))
+            images.append(sg.Image(save_name))
+            images.append(sg.Image(partner_save_name))
 
-            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image, sg.Radio('Low Budget', key='LOW', group_id=1), sg.Radio('Average Budget', key='AVG', group_id=1, default=True), sg.Radio('High Budget', key='HIGH', group_id=1), sg.Button('Get Deck', key='-DECK-')], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
+            layout = [[sg.Text("Find your commander: ")], [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"), sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"), sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned'), sg.Checkbox("Partner", key='partner')], [images, sg.Radio('Low Budget', key='LOW', group_id=1), sg.Radio('Average Budget', key='AVG', group_id=1, default=True), sg.Radio('High Budget', key='HIGH', group_id=1), sg.Button('Get Deck', key='-DECK-')], [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'), sg.Button("Exit", key='-EXIT-')]]
             print(layout)
             window1 = sg.Window("Commander Finder", layout, finalize=True)
             window.close()
@@ -187,6 +269,8 @@ while True:
         window['new'].update(value=True)
     if values['banned']:
         window['banned'].update(value=True)
+    if values['partner']:
+        window['partner'].update(value=True)
 
     time.sleep(0.1)
 
@@ -194,37 +278,70 @@ while True:
 
         try:
             if values['LOW']:
-                url = 'https://edhrec.com/average-decks/{}/budget'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
-                page = urlopen(url)
-                if page.getcode() == 200:
-                    html_bytes = page.read()
-                    html = html_bytes.decode('utf-8')
-                    decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
-                    start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
-                    end_index = html.find('</code>')
-                    decklist = html[start_index:end_index].replace('&#x27;', '\'')
+                if not values['partner']:
+                    url = 'https://edhrec.com/average-decks/{}/budget'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                    page = urlopen(url)
+                    if page.getcode() == 200:
+                        html_bytes = page.read()
+                        html = html_bytes.decode('utf-8')
+                        decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        end_index = html.find('</code>')
+                        decklist = html[start_index:end_index].replace('&#x27;', '\'')
+                if values['partner']:
+                    url = 'https://edhrec.com/average-decks/{}/budget'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower() + '-' + partner_name.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                    page = urlopen(url)
+                    if page.getcode() == 200:
+                        html_bytes = page.read()
+                        html = html_bytes.decode('utf-8')
+                        decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        end_index = html.find('</code>')
+                        decklist = html[start_index:end_index].replace('&#x27;', '\'')
 
             if values['AVG']:
-                url = 'https://edhrec.com/average-decks/{}'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
-                page = urlopen(url)
-                if page.getcode() == 200:
-                    html_bytes = page.read()
-                    html = html_bytes.decode('utf-8')
-                    decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
-                    start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
-                    end_index = html.find('</code>')
-                    decklist = html[start_index:end_index].replace('&#x27;', '\'')
+                if not values['partner']:
+                    url = 'https://edhrec.com/average-decks/{}'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                    page = urlopen(url)
+                    if page.getcode() == 200:
+                        html_bytes = page.read()
+                        html = html_bytes.decode('utf-8')
+                        decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        end_index = html.find('</code>')
+                        decklist = html[start_index:end_index].replace('&#x27;', '\'')
+                if values['partner']:
+                    url = 'https://edhrec.com/average-decks/{}'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower() + '-' + partner_name.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                    page = urlopen(url)
+                    if page.getcode() == 200:
+                        html_bytes = page.read()
+                        html = html_bytes.decode('utf-8')
+                        decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        end_index = html.find('</code>')
+                        decklist = html[start_index:end_index].replace('&#x27;', '\'')
 
             if values['HIGH']:
-                url = 'https://edhrec.com/average-decks/{}/expensive'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
-                page = urlopen(url)
-                if page.getcode() == 200:
-                    html_bytes = page.read()
-                    html = html_bytes.decode('utf-8')
-                    decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
-                    start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
-                    end_index = html.find('</code>')
-                    decklist = html[start_index:end_index].replace('&#x27;', '\'')
+                if not values['partner']:
+                    url = 'https://edhrec.com/average-decks/{}/expensive'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                    page = urlopen(url)
+                    if page.getcode() == 200:
+                        html_bytes = page.read()
+                        html = html_bytes.decode('utf-8')
+                        decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        end_index = html.find('</code>')
+                        decklist = html[start_index:end_index].replace('&#x27;', '\'')
+                if values['partner']:
+                    url = 'https://edhrec.com/average-decks/{}/expensive'.format(clearcmdname.replace(',', '').replace('\'', '').replace(" ", "-").lower() + '-' + partner_name.replace(',', '').replace('\'', '').replace(" ", "-").lower())
+                    page = urlopen(url)
+                    if page.getcode() == 200:
+                        html_bytes = page.read()
+                        html = html_bytes.decode('utf-8')
+                        decklist_index = html.find('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        start_index = decklist_index + len('<div class="DecklistPanel_code__pZfEA card-body"><div><code>')
+                        end_index = html.find('</code>')
+                        decklist = html[start_index:end_index].replace('&#x27;', '\'')
 
         except HTTPError as error:
             if error.code == 404:
@@ -257,14 +374,22 @@ while True:
         time.sleep(0.1)
         image2 = []
         image2.append(sg.Image(save_name))
+        image2.append(sg.Image(partner_save_name))
 
         layout = [[sg.Text("Find your commander: ")],
               [sg.InputText("", key="cmdName"), sg.Checkbox("Red", key="Red"), sg.Checkbox("Blue", key="Blue"),
                sg.Checkbox("Green", key="Green"), sg.Checkbox("White", key="White"), sg.Checkbox("Black", key="Black"),
-               sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned')], [image2, sg.Text('Budget: {} EUR'.format(round(deckprice, 2))), sg.Radio('Low Budget', key='LOW', group_id=1), sg.Radio('Average Budget', key='AVG', group_id=1, default=True), sg.Radio('High Budget', key='HIGH', group_id=1), sg.Button('Get Deck', key='-DECK-')],
+               sg.Checkbox("Allow not released", key='new'), sg.Checkbox("Allow banned", key='banned'), sg.Checkbox("Partner", key='partner')], [image2, sg.Text('Budget: {} EUR'.format(round(deckprice, 2))), sg.Radio('Low Budget', key='LOW', group_id=1), sg.Radio('Average Budget', key='AVG', group_id=1, default=True), sg.Radio('High Budget', key='HIGH', group_id=1), sg.Button('Get Deck', key='-DECK-')],
               [sg.Button('Find', key='-FIND-'), sg.Button("Randomize", key='-RANDOMIZE-'),
                sg.Button("Exit", key='-EXIT-')]]
         print(layout)
         window1 = sg.Window("Commander Finder", layout, finalize=True)
         window.close()
         window = window1
+
+        if values['new']:
+            window['new'].update(value=True)
+        if values['banned']:
+            window['banned'].update(value=True)
+        if values['partner']:
+            window['partner'].update(value=True)
